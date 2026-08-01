@@ -16,7 +16,12 @@ namespace ParquetViewer.Engine.ParquetNET
         public ParquetSchemaElement? Parent { get; private set; }
 
         private readonly Dictionary<string, ParquetSchemaElement> _children = new();
-        public IReadOnlyList<ParquetSchemaElement> Children => _children.Values.ToList();
+        public IReadOnlyCollection<ParquetSchemaElement> Children => _children.Values;
+
+        /// <summary>
+        /// Looks a child up by name without materializing <see cref="Children"/>.
+        /// </summary>
+        public ParquetSchemaElement? TryGetChild(string name) => _children.GetValueOrDefault(name);
 
         private IEnumerable<ParquetSchemaElement> _parentsExcludingRoot
         {

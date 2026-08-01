@@ -84,7 +84,7 @@ namespace ParquetViewer.Engine.ParquetNET
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var field = column.ParentSchema.Children.FirstOrDefault(c => c.Path == column.Name) as ParquetSchemaElement;
+                var field = (column.ParentSchema as ParquetSchemaElement)?.TryGetChild(column.Name);
                 switch (field?.FieldType)
                 {
                     case FieldTypeId.Primitive:

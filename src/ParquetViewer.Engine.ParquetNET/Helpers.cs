@@ -7,11 +7,19 @@
         //with some of my understanding of how the dremel algorithm works. No way will it work for all cases.
 
         public static bool IsNull(this Parquet.Data.DataColumn dataColumn, int index, ParquetSchemaElement field)
-            => dataColumn.DefinitionLevels?.Length > index && dataColumn.DefinitionLevels[index] <= field.CurrentDefinitionLevel - 1;
+            => dataColumn.IsNull(index, field.CurrentDefinitionLevel);
 
         public static bool IsEmpty(this Parquet.Data.DataColumn dataColumn, int index, ParquetSchemaElement field)
-            => dataColumn.DefinitionLevels?.Length > index && dataColumn.DefinitionLevels[index] == field.CurrentDefinitionLevel
-                    && field.DataField?.MaxDefinitionLevel != dataColumn.DefinitionLevels[index] /*Fixes STRUCT_TYPE_TEST*/;
+            => dataColumn.IsEmpty(index, field.CurrentDefinitionLevel, field.DataField?.MaxDefinitionLevel);
+
+        //Overloads taking a precomputed definition level. CurrentDefinitionLevel walks the parent chain on
+        //every read, so callers in per-element loops should hoist it out rather than recompute it each time.
+        public static bool IsNull(this Parquet.Data.DataColumn dataColumn, int index, int currentDefinitionLevel)
+            => dataColumn.DefinitionLevels?.Length > index && dataColumn.DefinitionLevels[index] <= currentDefinitionLevel - 1;
+
+        public static bool IsEmpty(this Parquet.Data.DataColumn dataColumn, int index, int currentDefinitionLevel, int? maxDefinitionLevel)
+            => dataColumn.DefinitionLevels?.Length > index && dataColumn.DefinitionLevels[index] == currentDefinitionLevel
+                    && maxDefinitionLevel != dataColumn.DefinitionLevels[index] /*Fixes STRUCT_TYPE_TEST*/;
         #endregion
 
         /// <summary>
@@ -27,6 +35,10 @@
             int levelCount = dataColumn.DefinitionLevels?.Length ?? 0;
             if (levelCount > dataColumn.Data.Length)
             {
+                //Hoisted out of the loop below: both walk the schema's parent chain on every access.
+                var currentDefinitionLevel = field.CurrentDefinitionLevel;
+                var maxDefinitionLevel = field.DataField?.MaxDefinitionLevel;
+
                 dataEnumerable = GetDataWithPaddedNulls();
 
                 IEnumerable<object> GetDataWithPaddedNulls()
@@ -36,7 +48,8 @@
                     {
                         index++;
 
-                        while (dataColumn.IsEmpty(index, field) || dataColumn.IsNull(index, field))
+                        while (dataColumn.IsEmpty(index, currentDefinitionLevel, maxDefinitionLevel)
+                            || dataColumn.IsNull(index, currentDefinitionLevel))
                         {
                             yield return DBNull.Value;
                             index++;

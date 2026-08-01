@@ -6,10 +6,10 @@ namespace ParquetViewer.Engine.ParquetNET
 {
     public class ListValueBuilder
     {
-        private int[] _repetitionLevels;
-        private int[] _definitionLevels;
-        private IEnumerable<object> _data;
-        private Type _type;
+        private readonly int[] _repetitionLevels;
+        private readonly int[] _definitionLevels;
+        private readonly IEnumerable<object> _data;
+        private readonly Type _type;
 
         public ListValueBuilder(int[] repetitionLevels, int[] definitionLevels, IEnumerable<object> data, Type type)
         {
@@ -53,21 +53,23 @@ namespace ParquetViewer.Engine.ParquetNET
         /// <returns>Enumerable of ListValue's. We need to return object to support DBNull.Value</returns>
         public IEnumerable<object> ReadRows(int skipRecords, int readRecords, int numberOfListParents, int currentDefinitionLevel, int maxDefinitionLevel, CancellationToken cancellationToken)
         {
-            var ranges = GetRowRanges();
+            //Materialize the data once up front. It arrives as a lazy LINQ chain, so slicing it per row
+            //used to re-run the whole projection from index 0 for every row, making this quadratic.
+            var data = _data
+                .Select(data => data is byte[] bytes ? new ByteArrayValue(bytes) : data) //Need to handle byte array type separately
+                .ToArray();
 
-            var rowRangesToRead = ranges.Skip(skipRecords).Take(readRecords);
+            var rowRangesToRead = GetRowRanges().Skip(skipRecords).Take(readRecords);
             foreach (var rowRange in rowRangesToRead)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var listValue = ReadListValue(rowRange, numberOfListParents, () =>
-                {
-                    //TODO: optimize to avoid skipping all rows every time
-                    return _data
-                    .Select(data => data is byte[] bytes ? new ByteArrayValue(bytes) : data) //Need to handle byte array type separately
-                    .Skip(rowRange.Start.Value)
-                    .Take(rowRange.End.Value - rowRange.Start.Value)
-                    .ToArray();
-                },
+
+                //Ranges are derived from the repetition levels, which can be longer than the data array.
+                //ReadListValue still gets the unclamped range since it slices the repetition levels with it,
+                //but the data slice is clamped to match what the previous Skip/Take would have returned.
+                var dataStart = Math.Min(rowRange.Start.Value, data.Length);
+                var dataEnd = Math.Min(rowRange.End.Value, data.Length);
+                var listValue = ReadListValue(rowRange, numberOfListParents, () => data[dataStart..dataEnd],
                 (int index) =>
                 {
                     return _definitionLevels.Length > index && _definitionLevels[index] == currentDefinitionLevel;
@@ -172,19 +174,6 @@ namespace ParquetViewer.Engine.ParquetNET
             public int Level { get; private set; }
             public bool IsNull { get; set; }
             public bool IsEmpty { get; set; }
-
-            public LinkedArrayList Root
-            {
-                get
-                {
-                    var node = this;
-                    while (node.Parent is not null)
-                    {
-                        node = node.Parent;
-                    }
-                    return node;
-                }
-            }
 
             public LinkedArrayList()
             {
