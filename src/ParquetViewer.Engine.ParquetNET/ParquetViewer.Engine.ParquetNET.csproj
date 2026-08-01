@@ -18,6 +18,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Parquet.Net" />
+    <!-- Direct reference only to lift the transitive Snappier 1.3.0 that Parquet.Net brings in (GHSA-pggp-6c3x-2xmx). -->
+    <PackageReference Include="Snappier" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ParquetViewer.Engine\ParquetViewer.Engine.csproj" />
