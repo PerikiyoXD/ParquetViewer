@@ -301,16 +301,20 @@ namespace ParquetViewer
                     }
 
                     //Write data
-                    for (int i = 0; i < dataTable.DefaultView.Count; i++)
+                    var defaultView = dataTable.DefaultView;
+                    var columnCount = dataTable.Columns.Count;
+                    for (int i = 0; i < defaultView.Count; i++)
                     {
                         if (cancellationToken.IsCancellationRequested)
                         {
                             break;
                         }
 
-                        for (int j = 0; j < dataTable.Columns.Count; j++)
+                        //Resolve the row once per row rather than once per cell
+                        var rowView = defaultView[i];
+                        for (int j = 0; j < columnCount; j++)
                         {
-                            var value = dataTable.DefaultView[i][j];
+                            var value = rowView[j];
                             if (value == DBNull.Value)
                             {
                                 excelWriter.WriteCell(i + 1, j); //empty cell
@@ -371,22 +375,26 @@ namespace ParquetViewer
                     using var fs = new FileStream(path, FileMode.OpenOrCreate);
                     using var jsonWriter = new Engine.Utf8JsonWriterWithRunningLength(fs);
 
+                    //Cache the column names once instead of resolving them per cell
+                    var columnNames = dataTable.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
+
                     jsonWriter.WriteStartArray();
                     foreach (DataRowView row in dataTable.DefaultView)
                     {
                         jsonWriter.WriteStartObject();
-                        for (var i = 0; i < row.Row.ItemArray.Length; i++)
+
+                        //ItemArray allocates a fresh copy of the whole row on every access, so read it once
+                        var values = row.Row.ItemArray;
+                        for (var i = 0; i < values.Length; i++)
                         {
                             if (cancellationToken.IsCancellationRequested)
                             {
                                 break;
                             }
 
-                            var columnName = dataTable.Columns[i].ColumnName;
-                            jsonWriter.WritePropertyName(columnName);
+                            jsonWriter.WritePropertyName(columnNames[i]);
 
-                            object? value = row.Row.ItemArray[i];
-                            Engine.Helpers.WriteValue(jsonWriter, value!, false);
+                            Engine.Helpers.WriteValue(jsonWriter, values[i]!, false);
                             progress.Report(1);
                         }
                         jsonWriter.WriteEndObject();
@@ -415,23 +423,22 @@ namespace ParquetViewer
                 }, cancellationToken);
 
         private static void HandleAllFilesSkippedException(AllFilesSkippedException ex)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine(Resources.Errors.NoValidParquetFilesFoundErrorMessage);
-            foreach (var skippedFile in ex.SkippedFiles)
-            {
-                sb.AppendLine($"-{skippedFile.FileName}");
-            }
-            ShowError(sb.ToString());
-        }
+            => ShowSkippedFilesError(Resources.Errors.NoValidParquetFilesFoundErrorMessage,
+                ex.SkippedFiles.Select(skippedFile => skippedFile.FileName));
 
         private static void HandleSomeFilesSkippedException(SomeFilesSkippedException ex)
+            => ShowSkippedFilesError(Resources.Errors.SomeInvalidParquetFilesFoundErrorMessage,
+                ex.SkippedFiles.Select(skippedFile => skippedFile.FileName));
+
+        //Takes file names rather than the skipped file records: each exception declares its own nested
+        //SkippedFile type, so there is no shared type to accept here.
+        private static void ShowSkippedFilesError(string message, IEnumerable<string> skippedFileNames)
         {
             var sb = new StringBuilder();
-            sb.AppendLine(Resources.Errors.SomeInvalidParquetFilesFoundErrorMessage);
-            foreach (var skippedFile in ex.SkippedFiles)
+            sb.AppendLine(message);
+            foreach (var fileName in skippedFileNames)
             {
-                sb.AppendLine($"-{skippedFile.FileName}");
+                sb.AppendLine($"-{fileName}");
             }
             ShowError(sb.ToString());
         }
@@ -464,12 +471,6 @@ namespace ParquetViewer
                         break;
 
                     sb.AppendLine($"  {schema.ElementAt(i)}");
-                }
-
-                if (schemaIndex > maxSchemasLimit)
-                {
-                    sb.AppendLine("...");
-                    break;
                 }
 
                 if (schemaIndex > maxSchemasLimit)
