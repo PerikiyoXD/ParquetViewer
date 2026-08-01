@@ -731,13 +731,16 @@ namespace ParquetViewer.Controls
             if (this.DataSource is not DataTable gridTable || this.Columns.Count == 0)
                 return;
 
-            var maxWidth = MAX_WIDTH;
-
             // Create a graphics object from the target grid. Used for measuring text size.
             using var gfx = this.CreateGraphics();
 
             for (int i = 0; i < gridTable.Columns.Count; i++)
             {
+                //Scoped per column on purpose. The decimal branches below raise this cap, and hoisting it
+                //out of the loop leaked that raised cap into every subsequent column, so the widths came
+                //out dependent on column order.
+                var maxWidth = MAX_WIDTH;
+
                 if (forceAutoSizeColumnIndex is not null && forceAutoSizeColumnIndex != i)
                     continue;
 
@@ -815,8 +818,10 @@ namespace ParquetViewer.Controls
                 }
                 else if (this.Columns[i].CellTemplate!.GetType() == typeof(AudioPlayerDataGridViewCell))
                 {
+                    //Audio columns get a fixed minimum so the player controls fit. Continue rather than
+                    //return: returning here left every column after an audio one at its default width.
                     this.Columns[i].Width = Math.Min(Math.Max(240, newColumnSize), maxWidth);
-                    return;
+                    continue;
                 }
                 else if (gridTable.Columns[i].DataType.ImplementsInterface<IByteArrayValue>()
                     && this.byteArrayColumnsWithFormatOverrides.TryGetValue(gridTable.Columns[i].ColumnName, out var byteArrayDisplayFormat))
