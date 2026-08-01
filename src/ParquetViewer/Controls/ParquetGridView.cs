@@ -182,7 +182,7 @@ namespace ParquetViewer.Controls
                     e.Paint(e.CellBounds, DataGridViewPaintParts.All
                         & ~(DataGridViewPaintParts.ContentForeground));
 
-                    var font = new Font(e.CellStyle!.Font!, FontStyle.Italic);
+                    var font = GetNullPlaceholderFont(e.CellStyle!.Font!);
                     var color = this.GridTheme.CellPlaceholderTextColor;
                     if (e.State.HasFlag(DataGridViewElementStates.Selected))
                         color = Color.White;
@@ -195,6 +195,25 @@ namespace ParquetViewer.Controls
             }
 
             base.OnCellPainting(e); //Handle any additional event handlers
+        }
+
+        private Font? _nullPlaceholderFont;
+        private Font? _nullPlaceholderFontSource;
+
+        /// <summary>
+        /// Returns the italic font used to render NULL placeholders, caching it between paints.
+        /// This runs for every NULL cell painted, so allocating a font here leaks a GDI handle per paint.
+        /// </summary>
+        private Font GetNullPlaceholderFont(Font cellFont)
+        {
+            if (this._nullPlaceholderFont is null || !cellFont.Equals(this._nullPlaceholderFontSource))
+            {
+                this._nullPlaceholderFont?.Dispose();
+                this._nullPlaceholderFontSource = cellFont;
+                this._nullPlaceholderFont = new Font(cellFont, FontStyle.Italic);
+            }
+
+            return this._nullPlaceholderFont;
         }
 
         protected override void OnCellMouseMove(DataGridViewCellMouseEventArgs e)
@@ -685,6 +704,9 @@ namespace ParquetViewer.Controls
                 }
                 catch { /*Swallow*/ }
             }
+
+            //Drop the disposed references too, otherwise they accumulate for the lifetime of the grid
+            this.openQuickPeekForms.Clear();
         }
 
         public void ClearColumnFormatOverrides()
@@ -1466,12 +1488,19 @@ namespace ParquetViewer.Controls
 
         protected override void Dispose(bool disposing)
         {
-            //DGV doesn't call Dispose on individual cells when it is disposed. So we need to manually 
-            //dispose any AudioPlayerDataGridViewCells to free resources and stop ongoing playback.
-            this.DisposeAudioCells();
+            //Only touch other managed objects when disposing deterministically. On the finalizer thread
+            //they may already have been collected, and walking Rows/Columns there is not safe.
+            if (disposing)
+            {
+                //DGV doesn't call Dispose on individual cells when it is disposed. So we need to manually
+                //dispose any AudioPlayerDataGridViewCells to free resources and stop ongoing playback.
+                this.DisposeAudioCells();
 
-            this._contextMenu?.Dispose();
-            this._headerContextMenu?.Dispose();
+                this._contextMenu?.Dispose();
+                this._headerContextMenu?.Dispose();
+                this._nullPlaceholderFont?.Dispose();
+                this.hyperlinkCellStyleCache?.Font?.Dispose();
+            }
 
             base.Dispose(disposing);
         }

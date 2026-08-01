@@ -280,21 +280,44 @@ namespace ParquetViewer
             }
         }
 
+        //Guards against overlapping loads. The property setters below start a load without awaiting it, and
+        //the loading icon only disables the input controls once the load is already underway, so a second
+        //load can still be kicked off while the first is in flight. Both would then race to assign
+        //MainDataSource and the status labels, leaving the grid showing whichever finished last rather
+        //than whichever the user asked for last.
+        private bool _isLoadingToGridview = false;
+
         private async void LoadFileToGridview()
         {
             if (this._openParquetEngine is null)
                 return;
 
+            if (this._isLoadingToGridview)
+                return;
+
+            this._isLoadingToGridview = true;
+            try
+            {
+                await LoadFileToGridviewCore(this._openParquetEngine);
+            }
+            finally
+            {
+                this._isLoadingToGridview = false;
+            }
+        }
+
+        private async Task LoadFileToGridviewCore(IParquetEngine openParquetEngine)
+        {
 #if RELEASE_SELFCONTAINED
             //Self contained release has both Parquet.NET and DuckDB engines included as the file size remains the same.
             try
             {
-                await this.LoadFileToGridviewImpl(this._openParquetEngine);
+                await this.LoadFileToGridviewImpl(openParquetEngine);
             }
             catch (Exception unhandledEx)
             {
                 //Try DuckDB if Parquet.NET fails
-                if (this._openParquetEngine is Engine.DuckDB.ParquetEngine)
+                if (openParquetEngine is Engine.DuckDB.ParquetEngine)
                     throw;
 
                 try
@@ -312,11 +335,11 @@ namespace ParquetViewer
 
             void SwapEngines(IParquetEngine newEngine)
             {
-                this._openParquetEngine.DisposeSafely();
+                openParquetEngine.DisposeSafely();
                 this._openParquetEngine = newEngine;
             }
 #else
-            await this.LoadFileToGridviewImpl(this._openParquetEngine);
+            await this.LoadFileToGridviewImpl(openParquetEngine);
 #endif
 
             this._originalModifiedInfo = null;
