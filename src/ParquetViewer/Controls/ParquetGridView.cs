@@ -893,10 +893,6 @@ namespace ParquetViewer.Controls
                     Resources.Errors.CopyToClipboardErrorTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            catch (Exception)
-            {
-                throw;
-            }
             finally
             {
                 if (withHeaders)

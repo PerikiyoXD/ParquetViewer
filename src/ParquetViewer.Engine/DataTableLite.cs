@@ -156,21 +156,14 @@ namespace ParquetViewer.Engine
         }
         public object GetValue(string columnName)
         {
-            if (!this.Columns.ContainsKey(columnName))
+            //ColumnLite carries its own ordinal, so the dictionary lookup is enough on its own. This used
+            //to check the dictionary and then scan the keys in order to recover the index anyway.
+            if (!this.Columns.TryGetValue(columnName, out var column))
             {
                 throw new IndexOutOfRangeException($"Column `{columnName}` not found");
             }
 
-            var index = 0;
-            foreach (var column in this.Columns.Keys)
-            {
-                if (column.Equals(columnName))
-                {
-                    return this.Row[index];
-                }
-                index++;
-            }
-            throw new IndexOutOfRangeException($"Could not get value for column `{columnName}`");
+            return this.Row[column.Ordinal];
         }
     }
 

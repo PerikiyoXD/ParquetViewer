@@ -242,6 +242,14 @@ namespace ParquetViewer.Engine.DuckDB
             ArgumentOutOfRangeException.ThrowIfNegative(offset, nameof(offset));
 
             var result = CreateEmptyDataTable(selectedFields);
+
+            //Resolve the schema element for each selected field once. This used to happen per cell, and
+            //each lookup scanned the schema tree's children linearly.
+            var schemaTree = this._metadatas.First().SchemaTree;
+            var schemaElementsByOrdinal = selectedFields
+                .Select(fieldName => (ParquetSchemaElement)schemaTree.Children.First(f => f.Path == fieldName))
+                .ToArray();
+
             result.BeginLoadData();
             await foreach (var row in this.QueryDataAsync(selectedFields, offset, recordCount))
             {
@@ -256,19 +264,13 @@ namespace ParquetViewer.Engine.DuckDB
                 {
                     throw new DecimalOverflowException(ex);
                 }
-                catch (Exception)
-                {
-                    throw;
-                }
 
                 //Convert values to our types
                 for (var columnIndex = 0; columnIndex < row.FieldCount; columnIndex++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var fieldName = selectedFields.ElementAt(columnIndex);
-                    var parquetSchemaElement = (ParquetSchemaElement)this._metadatas.First().SchemaTree.Children.First(f => f.Path == fieldName);
-                    values[columnIndex] = ConvertValueTypeIfNeeded(values[columnIndex], parquetSchemaElement);
+                    values[columnIndex] = ConvertValueTypeIfNeeded(values[columnIndex], schemaElementsByOrdinal[columnIndex]);
                 }
 
                 //supposedly this is the fastest way to load data into a datatable https://stackoverflow.com/a/17123914/1458738

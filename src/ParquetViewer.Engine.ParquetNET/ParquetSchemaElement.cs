@@ -92,10 +92,6 @@ namespace ParquetViewer.Engine.ParquetNET
                 }
                 throw;
             }
-            catch (Exception)
-            {
-                throw;
-            }
         }
 
         /// <summary>

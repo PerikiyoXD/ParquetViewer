@@ -81,13 +81,18 @@ namespace ParquetViewer.Engine.Types
                 using (var jsonWriter = new Utf8JsonWriterWithRunningLength(ms))
                 {
                     jsonWriter.WriteStartObject();
-                    for (var i = 0; i < Data.ColumnNames.Count; i++)
+
+                    //Enumerate the names rather than indexing into them: ColumnNames is a dictionary key
+                    //collection, so ElementAt(i) walks it from the start and made this quadratic per cell.
+                    var i = 0;
+                    foreach (var columnName in Data.ColumnNames)
                     {
-                        string columnName = Data.ColumnNames.ElementAt(i);
                         jsonWriter.WritePropertyName(columnName);
 
                         object value = Data.Row[i];
                         Helpers.WriteValue(jsonWriter, value, desiredLength is not null);
+
+                        i++;
 
                         if (desiredLength > 0 && jsonWriter.ApproximateStringLengthSoFar > desiredLength)
                         {

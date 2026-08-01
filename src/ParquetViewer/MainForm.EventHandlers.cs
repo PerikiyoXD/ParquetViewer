@@ -229,10 +229,6 @@ namespace ParquetViewer
                 MessageBox.Show(ex.Message + Environment.NewLine + Environment.NewLine + ex.InnerException?.Message,
                     Resources.Errors.InvalidQueryErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-            catch (Exception)
-            {
-                throw;
-            }
         }
 
         private void clearFilterButton_Click(object sender, EventArgs? e)
