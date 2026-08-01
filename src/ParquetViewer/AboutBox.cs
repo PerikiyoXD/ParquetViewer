@@ -200,6 +200,14 @@ namespace ParquetViewer
             {
                 this.newVersionLabel.Visible = false;
                 var latestRelease = await Env.FetchLatestRelease();
+
+                if (latestRelease.Version is null)
+                {
+                    //Update checking is disabled in this fork, so there's nothing to show
+                    this.newVersionLabel.Text = string.Empty;
+                    return;
+                }
+
                 this.newVersionLabel.Text = this.newVersionLabel.Text.Format(latestRelease.Version);
                 this.newVersionLabel.Visible = true;
 

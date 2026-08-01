@@ -154,6 +154,12 @@ namespace ParquetViewer
         /// </remarks>
         public static void GetUserConsentToGatherAnalytics()
         {
+            //This fork never sends analytics, so there's nothing to ask permission for
+            if (!AmplitudeEvent.AnalyticsEnabled)
+                return;
+
+            //Kept rather than deleted so the prompt returns if analytics is ever switched back on
+#pragma warning disable CS0162 // Unreachable code detected
             if (AppSettings.ConsentLastAskedOnVersion is null || AppSettings.ConsentLastAskedOnVersion < Env.AssemblyVersion)
             {
                 if (AppSettings.AnalyticsDataGatheringConsent)
@@ -182,6 +188,7 @@ namespace ParquetViewer
                     }
                 }
             }
+#pragma warning restore CS0162
         }
 
         /// <summary>

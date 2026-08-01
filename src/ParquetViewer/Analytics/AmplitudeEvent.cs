@@ -13,11 +13,26 @@ namespace ParquetViewer.Analytics
         //The api key is meant to be public: https://www.docs.developers.amplitude.com/guides/amplitude-keys-guide/#api-key
         private const string AMPLITUDE_API_KEY = ""; //This will only be populated for official releases
 
+        /// <summary>
+        /// Kill switch for outbound analytics in this fork. When false, <see cref="Record"/> never touches
+        /// the network for the default configuration.
+        /// </summary>
+        /// <remarks>
+        /// The upstream build injects an api key at release time, so an empty key above is not by itself a
+        /// guarantee. This constant is, and it can't be undone by a build step. Tests that pass an explicit
+        /// configuration with a mock handler still exercise the request building.
+        /// </remarks>
+        internal const bool AnalyticsEnabled = false;
+
         private static readonly long _sessionId = DateTime.UtcNow.ToMillisecondsSinceEpoch();
         private static readonly int _systemRAM = (int)(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 1048576.0 /*magic number*/);
         private static readonly AmplitudeConfiguration _defaultConfiguration = new(AMPLITUDE_API_KEY, () => new HttpClientHandler(), new AppSettingsConsentProvider());
 
         private readonly AmplitudeConfiguration _amplitudeConfiguration;
+
+        //True when a caller passed its own configuration, which in practice means a test with a mock
+        //transport. AmplitudeConfiguration is a value type, so this can't be a reference comparison.
+        private readonly bool _hasExplicitConfiguration;
 
         [JsonIgnore]
         public string DeviceId => AppSettings.AnalyticsDeviceId.ToString();
@@ -51,6 +66,7 @@ namespace ParquetViewer.Analytics
         protected AmplitudeEvent(string eventType, AmplitudeConfiguration? amplitudeConfiguration = null)
         {
             EventType = eventType;
+            _hasExplicitConfiguration = amplitudeConfiguration is not null;
             _amplitudeConfiguration = amplitudeConfiguration ?? _defaultConfiguration;
         }
 
@@ -58,6 +74,11 @@ namespace ParquetViewer.Analytics
         {
             try
             {
+                //Never send anything from a normally configured build. Tests supply their own configuration
+                //with a mock transport, so they keep working.
+                if (!AnalyticsEnabled && !_hasExplicitConfiguration)
+                    return false;
+
                 if (_amplitudeConfiguration.ApiKey.Length == 0 || !_amplitudeConfiguration.ConsentProvider.AnalyticsDataGatheringConsent)
                     return false;
 

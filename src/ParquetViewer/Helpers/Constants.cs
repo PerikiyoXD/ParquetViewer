@@ -49,8 +49,23 @@ namespace ParquetViewer.Helpers
         private static SemanticVersion? _latestReleaseVersion = null;
         private static Uri? _releaseUri = null;
         private static DateTime? _latestReleaseLastCheckedOn = null;
+        /// <summary>
+        /// Set to false in this fork so the app never calls out to the network.
+        /// </summary>
+        /// <remarks>
+        /// The check queried upstream's releases, which would report this fork as out of date, or as newer
+        /// than the latest official release, depending on the version numbers. Neither is meaningful here.
+        /// </remarks>
+        private const bool UpdateCheckEnabled = false;
+
         public static async Task<(SemanticVersion? Version, Uri? Url)> FetchLatestRelease()
         {
+            if (!UpdateCheckEnabled)
+                return (null, null);
+
+            //The implementation below is intentionally kept rather than deleted, so the check is one
+            //constant away from working again if this fork ever publishes its own releases.
+#pragma warning disable CS0162 // Unreachable code detected
             //We cache the http response for 30 minutes (even if it failed) so we don't spam http requests
             if (_latestReleaseLastCheckedOn.HasValue && DateTime.UtcNow.Subtract(_latestReleaseLastCheckedOn.Value) < TimeSpan.FromMinutes(30))
             {
@@ -101,6 +116,7 @@ namespace ParquetViewer.Helpers
             }
 
             return (null, null);
+#pragma warning restore CS0162
         }
         #endregion
 
