@@ -106,18 +106,22 @@ namespace ParquetViewer.Controls
                 }
                 else if (column.ValueType.ImplementsInterface<IByteArrayValue>())
                 {
-                    //Check if this column contains images
-                    for (var i = 0; i < this.Rows.Count; i++)
+                    //Check if this column contains images. Try a few non-null values rather than only the
+                    //first: a single non-image blob at the top of the column used to mark the whole column
+                    //as plain bytes. This mirrors what the audio column detection does.
+                    const int MaxValuesToCheck = 3;
+                    var checkedValues = 0;
+                    for (var i = 0; i < this.Rows.Count && checkedValues < MaxValuesToCheck; i++)
                     {
                         var cellValue = this[column.Index, i].Value;
-                        if (cellValue != DBNull.Value)
+                        if (cellValue == DBNull.Value)
+                            continue;
+
+                        checkedValues++;
+                        if (((IByteArrayValue)cellValue!).ToImage(out var image))
                         {
-                            var isImage = ((IByteArrayValue)cellValue!).ToImage(out var image);
-                            if (isImage)
-                            {
-                                column.DefaultCellStyle = GetHyperlinkCellStyle(column);
-                                image?.Dispose();
-                            }
+                            image.Dispose();
+                            column.DefaultCellStyle = GetHyperlinkCellStyle(column);
                             break;
                         }
                     }
