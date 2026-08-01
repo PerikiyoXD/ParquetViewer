@@ -20,6 +20,8 @@ namespace ParquetViewer
                 return AttemptFileAssociation(args);
             }
 
+            SetUpTraceLog();
+
             //Set language
             if (AppSettings.UserSelectedCulture is not null)
             {
@@ -104,9 +106,42 @@ namespace ParquetViewer
 
         private static void ExceptionHandler(Exception ex)
         {
+            System.Diagnostics.Trace.TraceError(ex.ToString());
             ExceptionEvent.FireAndForget(ex);
             MessageBox.Show($"{Resources.Errors.GenericErrorMessage} {Resources.Errors.CopyErrorMessageText}:{Environment.NewLine}{Environment.NewLine}{ex}",
                 ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        /// <summary>
+        /// Sends trace output to a log file next to the user's local app data so that the failures we
+        /// deliberately recover from, rather than surface, can still be diagnosed after the fact.
+        /// </summary>
+        private static void SetUpTraceLog()
+        {
+            try
+            {
+                var logDirectory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ParquetViewer");
+                Directory.CreateDirectory(logDirectory);
+
+                var logFile = Path.Combine(logDirectory, "parquetviewer.log");
+
+                //Don't let the log grow without bound across runs
+                const long MaxLogBytes = 1024 * 1024;
+                if (File.Exists(logFile) && new FileInfo(logFile).Length > MaxLogBytes)
+                {
+                    File.Delete(logFile);
+                }
+
+                System.Diagnostics.Trace.AutoFlush = true;
+                System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.TextWriterTraceListener(logFile));
+                System.Diagnostics.Trace.TraceInformation($"--- ParquetViewer {Env.AssemblyVersion} started at {DateTime.Now:s} ---");
+            }
+            catch (Exception ex)
+            {
+                //Logging must never be the thing that stops the app from starting
+                System.Diagnostics.Debug.WriteLine($"Failed to set up the trace log: {ex}");
+            }
         }
 
         /// <summary>

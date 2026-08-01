@@ -230,7 +230,11 @@ namespace ParquetViewer.Helpers
             {
                 disposable?.Dispose();
             }
-            catch { /*swallow*/ }
+            catch (Exception ex)
+            {
+                //"Safely" means the caller isn't interrupted, not that the failure goes unrecorded
+                System.Diagnostics.Trace.TraceError($"Failed to dispose a {disposable?.GetType().Name}: {ex}");
+            }
         }
 
         public static bool ImplementsInterface<T>(this Type? type)

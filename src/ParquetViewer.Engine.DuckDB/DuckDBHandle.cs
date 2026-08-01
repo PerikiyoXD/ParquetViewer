@@ -37,7 +37,12 @@ namespace ParquetViewer.Engine.DuckDB
             {
                 Connection.Dispose();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                //Disposal failures shouldn't take down the caller, but a connection that won't close is
+                //worth knowing about since it means we're leaking a duckdb handle.
+                System.Diagnostics.Trace.TraceError($"Failed to dispose the DuckDB connection: {ex}");
+            }
         }
     }
 }

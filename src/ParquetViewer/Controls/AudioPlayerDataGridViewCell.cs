@@ -442,7 +442,11 @@ namespace ParquetViewer.Controls
                     if (!string.IsNullOrWhiteSpace(filePath))
                         File.Delete(filePath);
                 }
-                catch (Exception) { /*Swallow*/ }
+                catch (Exception ex)
+                {
+                    //The save is about to overwrite this path anyway, so a failed pre-delete isn't fatal
+                    System.Diagnostics.Trace.TraceError($"Failed to delete `{filePath}` before saving: {ex}");
+                }
             }
         }
 
@@ -470,16 +474,21 @@ namespace ParquetViewer.Controls
                 audioFormat = AudioFormat.Wav;
                 return new WaveFileReader(this._memoryStream);
             }
-            catch
+            catch (Exception wavException)
             {
                 try
                 {
                     audioFormat = AudioFormat.Mp3;
                     return new Mp3FileReader(this._memoryStream);
                 }
-                catch
+                catch (Exception mp3Exception)
                 {
-                    throw new InvalidDataException("Invalid audio data: not a valid .wav or .mp3 file.");
+                    //Keep both parse failures: they are the only explanation of why the data was rejected,
+                    //and the message ends up in front of the user as the cell's error text.
+                    System.Diagnostics.Trace.TraceError($"Audio data rejected. Wav: {wavException}{Environment.NewLine}Mp3: {mp3Exception}");
+
+                    throw new InvalidDataException(
+                        "Invalid audio data: not a valid .wav or .mp3 file.", mp3Exception);
                 }
             }
         }

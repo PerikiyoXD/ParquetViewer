@@ -201,7 +201,11 @@ namespace ParquetViewer.Engine
                 {
                     disposable?.Dispose();
                 }
-                catch { /* Swallow */ }
+                catch (Exception ex)
+                {
+                    //Keep disposing the rest, but report the failure instead of dropping it
+                    System.Diagnostics.Trace.TraceError($"Failed to dispose a {disposable?.GetType().Name}: {ex}");
+                }
             }
         }
 

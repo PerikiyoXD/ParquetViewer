@@ -1,7 +1,9 @@
 ﻿using Microsoft.Win32;
+using ParquetViewer.Analytics;
 using ParquetViewer.Controls;
 using ParquetViewer.Helpers;
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
@@ -137,8 +139,12 @@ namespace ParquetViewer
                     return false;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                //Falling back to the default is intentional, but log why: a setting silently reverting to
+                //its default is otherwise indistinguishable from the user never having set it.
+                Trace.TraceError($"Failed to read setting `{key}` from the registry: {ex}");
+
                 value = default;
                 return false;
             }
@@ -154,7 +160,13 @@ namespace ParquetViewer
                 using var registryKey = Registry.CurrentUser.CreateSubKey(RegistrySubKey);
                 registryKey.SetValue(key, value);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                //Failing to persist a setting shouldn't be fatal, but it also shouldn't vanish silently:
+                //it explains why a setting the user changed doesn't survive a restart.
+                Trace.TraceError($"Failed to save setting `{key}` to the registry: {ex}");
+                ExceptionEvent.FireAndForget(ex);
+            }
         }
     }
 }

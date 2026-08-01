@@ -126,7 +126,11 @@ namespace ParquetViewer.Helpers
                         };
                     }
                 }
-                catch { /*Swallow*/ }
+                catch (Exception ex)
+                {
+                    //Returning null for "couldn't determine" is the documented contract, but record why
+                    System.Diagnostics.Trace.TraceError($"Failed to read the apps theme preference: {ex}");
+                }
 
                 return null;
             }
@@ -152,7 +156,11 @@ namespace ParquetViewer.Helpers
                         };
                     }
                 }
-                catch { /*Swallow*/ }
+                catch (Exception ex)
+                {
+                    //Returning null for "couldn't determine" is the documented contract, but record why
+                    System.Diagnostics.Trace.TraceError($"Failed to read the system theme preference: {ex}");
+                }
 
                 return null;
             }

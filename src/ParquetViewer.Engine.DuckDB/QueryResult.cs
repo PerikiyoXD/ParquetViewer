@@ -15,9 +15,17 @@ namespace ParquetViewer.Engine.DuckDB
         {
             try
             {
-                _reader.DisposeAsync();
+                //Synchronous Dispose, not DisposeAsync: the ValueTask returned by the async overload was
+                //discarded here, so disposal was not guaranteed to finish and any failure inside it escaped
+                //the catch below rather than being reported by it.
+                _reader.Dispose();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                //Disposal failures shouldn't take down the caller, but a reader that won't close is worth
+                //knowing about since it means we're holding a duckdb resource open.
+                System.Diagnostics.Trace.TraceError($"Failed to dispose the DuckDB data reader: {ex}");
+            }
         }
 
         public async Task<DuckDBDataReader> GetSingleAsync()

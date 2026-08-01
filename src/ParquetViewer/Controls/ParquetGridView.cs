@@ -702,7 +702,11 @@ namespace ParquetViewer.Controls
                         form.Value.Dispose();
                     }
                 }
-                catch { /*Swallow*/ }
+                catch (Exception ex)
+                {
+                    //Keep closing the rest of the popups, but don't lose the reason this one failed
+                    System.Diagnostics.Trace.TraceError($"Failed to dispose a quick peek form: {ex}");
+                }
             }
 
             //Drop the disposed references too, otherwise they accumulate for the lifetime of the grid
@@ -857,8 +861,11 @@ namespace ParquetViewer.Controls
                 else
                     return width;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                //Falling back to the worst case keeps sizing going, but it silently pins the column to the
+                //maximum width, so record what actually failed.
+                System.Diagnostics.Trace.TraceError($"Failed to measure string width: {ex}");
                 return int.MaxValue; //Assume worst case
             }
         }
