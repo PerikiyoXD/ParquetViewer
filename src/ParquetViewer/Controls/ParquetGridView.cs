@@ -1323,110 +1323,38 @@ namespace ParquetViewer.Controls
         /// <returns>String representation of the binary data in the desired format if possible.
         /// If conversion fails, <see cref="FORMATTING_ERROR_TEXT"/> is returned instead</returns>
         /// <remarks>Utilize <see cref="ByteArrayValue.PossibleDisplayFormats"/> to avoid calling incompatible conversions</remarks>
-        private static string FormatByteArrayString(IByteArrayValue byteArrayValue, IByteArrayValue.DisplayFormat desiredFormat, int desiredLength = int.MaxValue)
+        public static string FormatByteArrayString(IByteArrayValue byteArrayValue, IByteArrayValue.DisplayFormat desiredFormat, int desiredLength = int.MaxValue)
         {
             ArgumentNullException.ThrowIfNull(byteArrayValue);
             ArgumentOutOfRangeException.ThrowIfLessThan(desiredLength, 1);
 
-            if (desiredFormat == IByteArrayValue.DisplayFormat.IPv4)
+            return desiredFormat switch
             {
-                if (byteArrayValue.ToIPv4(out var ipAddress))
-                {
-                    return ipAddress.ToString();
-                }
+                IByteArrayValue.DisplayFormat.IPv4 => Format(byteArrayValue.ToIPv4(out var ipv4), () => ipv4!.ToString()),
+                IByteArrayValue.DisplayFormat.IPv6 => Format(byteArrayValue.ToIPv6(out var ipv6), () => ipv6!.ToString()),
+                IByteArrayValue.DisplayFormat.Guid => Format(byteArrayValue.ToGuid(out var @guid), () => @guid!.Value.ToString()),
+                IByteArrayValue.DisplayFormat.Short => Format(byteArrayValue.ToShort(out var @short), () => @short!.Value.ToString()),
+                IByteArrayValue.DisplayFormat.Integer => Format(byteArrayValue.ToInteger(out var @int), () => @int!.Value.ToString()),
+                IByteArrayValue.DisplayFormat.Long => Format(byteArrayValue.ToLong(out var @long), () => @long!.Value.ToString()),
+                IByteArrayValue.DisplayFormat.Float => Format(byteArrayValue.ToFloat(out var @float), () => @float!.Value.ToString()),
+                IByteArrayValue.DisplayFormat.Double => Format(byteArrayValue.ToDouble(out var @double), () => @double!.Value.ToString()),
+                IByteArrayValue.DisplayFormat.ASCII => Format(byteArrayValue.ToASCII(out var ascii), () => Truncate(ascii!)),
+                IByteArrayValue.DisplayFormat.Base64 => TruncateBase64(),
+                IByteArrayValue.DisplayFormat.Size => byteArrayValue.Data.Length + (byteArrayValue.Data.Length == 1 ? " byte" : " bytes"),
+                _ => byteArrayValue.ToStringTruncated(desiredLength)
+            };
 
-                return FORMATTING_ERROR_TEXT;
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.IPv6)
-            {
-                if (byteArrayValue.ToIPv6(out var ipAddress))
-                {
-                    return ipAddress.ToString();
-                }
+            static string Format(bool succeeded, Func<string> valueProvider)
+                => succeeded ? valueProvider.Invoke() : FORMATTING_ERROR_TEXT;
 
-                return FORMATTING_ERROR_TEXT;
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.Guid)
-            {
-                if (byteArrayValue.ToGuid(out var @guid))
-                {
-                    return @guid.Value.ToString();
-                }
+            string Truncate(string value)
+                => value.Length <= desiredLength ? value : value[..desiredLength] + "[...]";
 
-                return FORMATTING_ERROR_TEXT;
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.Short)
-            {
-                if (byteArrayValue.ToShort(out var @short))
-                {
-                    return @short.Value.ToString();
-                }
-
-                return FORMATTING_ERROR_TEXT;
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.Integer)
-            {
-                if (byteArrayValue.ToInteger(out var @int))
-                {
-                    return @int.Value.ToString();
-                }
-
-                return FORMATTING_ERROR_TEXT;
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.Long)
-            {
-                if (byteArrayValue.ToLong(out var @long))
-                {
-                    return @long.Value.ToString();
-                }
-
-                return FORMATTING_ERROR_TEXT;
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.Float)
-            {
-                if (byteArrayValue.ToFloat(out var @float))
-                {
-                    return @float.Value.ToString();
-                }
-
-                return FORMATTING_ERROR_TEXT;
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.Double)
-            {
-                if (byteArrayValue.ToDouble(out var @double))
-                {
-                    return @double.Value.ToString();
-                }
-
-                return FORMATTING_ERROR_TEXT;
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.ASCII)
-            {
-                if (byteArrayValue.ToASCII(out var ascii))
-                {
-                    if (ascii.Length <= desiredLength)
-                        return ascii;
-
-                    return ascii[..desiredLength] + "[...]";
-                }
-
-                return FORMATTING_ERROR_TEXT;
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.Base64)
+            //ToBase64 returns void, so unlike the others it has no failure case to report
+            string TruncateBase64()
             {
                 byteArrayValue.ToBase64(out var base64);
-                if (base64.Length <= desiredLength)
-                    return base64;
-
-                return base64[..desiredLength] + "[...]";
-            }
-            else if (desiredFormat == IByteArrayValue.DisplayFormat.Size)
-            {
-                return byteArrayValue.Data.Length.ToString() + (byteArrayValue.Data.Length == 1 ? " byte" : " bytes");
-            }
-            else
-            {
-                return byteArrayValue.ToStringTruncated(desiredLength);
+                return Truncate(base64);
             }
         }
 

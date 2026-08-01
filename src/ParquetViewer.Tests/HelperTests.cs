@@ -336,5 +336,58 @@ namespace ParquetViewer.Tests
             Assert.AreEqual("01-02-03-04-05-06-07-08-09-10", byteArrayValue.ToStringTruncated(29));
             Assert.AreEqual("01-02-03-04-05-06-07-08-09-10", byteArrayValue.ToString());
         }
+
+        [TestMethod]
+        public void FormatByteArrayString_FormatsEachDisplayFormat()
+        {
+            using var _ = new InvariantCultureScope();
+
+            //4 bytes: valid IPv4 / int / float, too short for guid or long
+            var fourBytes = new ByteArrayValue([0x01, 0x02, 0x03, 0x04]);
+            Assert.AreEqual("1.2.3.4", ParquetGridView.FormatByteArrayString(fourBytes, IByteArrayValue.DisplayFormat.IPv4));
+            Assert.AreEqual(BitConverter.ToInt32([0x01, 0x02, 0x03, 0x04]).ToString(),
+                ParquetGridView.FormatByteArrayString(fourBytes, IByteArrayValue.DisplayFormat.Integer));
+            Assert.AreEqual("4 bytes", ParquetGridView.FormatByteArrayString(fourBytes, IByteArrayValue.DisplayFormat.Size));
+            Assert.AreEqual("AQIDBA==", ParquetGridView.FormatByteArrayString(fourBytes, IByteArrayValue.DisplayFormat.Base64));
+
+            //Incompatible conversions fall back to the error text rather than throwing
+            Assert.AreEqual("#ERR", ParquetGridView.FormatByteArrayString(fourBytes, IByteArrayValue.DisplayFormat.Guid));
+            Assert.AreEqual("#ERR", ParquetGridView.FormatByteArrayString(fourBytes, IByteArrayValue.DisplayFormat.Long));
+
+            //2 bytes: short
+            var twoBytes = new ByteArrayValue([0x01, 0x02]);
+            Assert.AreEqual(BitConverter.ToInt16([0x01, 0x02]).ToString(),
+                ParquetGridView.FormatByteArrayString(twoBytes, IByteArrayValue.DisplayFormat.Short));
+            Assert.AreEqual("1 byte", ParquetGridView.FormatByteArrayString(new ByteArrayValue([0x01]), IByteArrayValue.DisplayFormat.Size));
+
+            //16 bytes: guid and IPv6
+            var sixteenBytes = new ByteArrayValue(Enumerable.Range(1, 16).Select(i => (byte)i).ToArray());
+            Assert.AreEqual(new Guid(sixteenBytes.Data).ToString(),
+                ParquetGridView.FormatByteArrayString(sixteenBytes, IByteArrayValue.DisplayFormat.Guid));
+
+            //ASCII, including the truncation branch
+            var ascii = new ByteArrayValue("HELLOWORLD"u8.ToArray());
+            Assert.AreEqual("HELLOWORLD", ParquetGridView.FormatByteArrayString(ascii, IByteArrayValue.DisplayFormat.ASCII));
+            Assert.AreEqual("HELL[...]", ParquetGridView.FormatByteArrayString(ascii, IByteArrayValue.DisplayFormat.ASCII, 4));
+
+            //Base64 truncation uses the same rule
+            Assert.AreEqual("SEVM[...]", ParquetGridView.FormatByteArrayString(ascii, IByteArrayValue.DisplayFormat.Base64, 4));
+
+            //Hex is the default fallback
+            Assert.AreEqual("01-02-03-04", ParquetGridView.FormatByteArrayString(fourBytes, IByteArrayValue.DisplayFormat.Hex));
+        }
+
+        /// <summary>
+        /// Pins CurrentCulture to invariant for the duration of a test so number formatting is stable
+        /// regardless of the machine's locale.
+        /// </summary>
+        private sealed class InvariantCultureScope : IDisposable
+        {
+            private readonly CultureInfo _original = CultureInfo.CurrentCulture;
+
+            public InvariantCultureScope() => CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+            public void Dispose() => CultureInfo.CurrentCulture = _original;
+        }
     }
 }
