@@ -1397,6 +1397,14 @@ namespace ParquetViewer.Controls
                         //exceptions "seem" to be innocuous so going to keep doing it this way for now.
                         //Only other alternative is to stop using AutoGenerateColumns :/
                         column.CellTemplate = new AudioPlayerDataGridViewCell();
+
+                        //Assigning the template only affects cells created from this point on, and binding
+                        //has already created every cell in the column by the time this event fires. Without
+                        //replacing them the column keeps its text box cells and renders the raw bytes.
+                        foreach (DataGridViewRow row in this.Rows)
+                        {
+                            row.Cells[column.Index] = new AudioPlayerDataGridViewCell();
+                        }
                     }
                 }
             }
