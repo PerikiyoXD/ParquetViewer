@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -273,7 +274,12 @@ namespace ParquetViewer
                             }
                             else
                             {
-                                var stringValue = value!.ToString()!; //we never have `null` only `DBNull.Value`
+                                //Numbers are written with the invariant culture so the file is portable.
+                                //Under a comma-decimal locale 1.5 would otherwise be written as "1,5", which
+                                //only survives because the comma forces quoting, and won't round-trip when
+                                //the file is read back anywhere else.
+                                //we never have `null` only `DBNull.Value`
+                                var stringValue = Convert.ToString(value, CultureInfo.InvariantCulture)!;
                                 rowBuilder.Append(UtilityMethods.CleanCSVValue(stringValue));
                             }
 
