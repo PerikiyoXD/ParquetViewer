@@ -5,6 +5,7 @@ using ParquetViewer.Helpers;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.Globalization;
 
 namespace ParquetViewer
@@ -23,6 +24,13 @@ namespace ParquetViewer
         private const string DarkModeKey = "DarkMode";
         private const string UserSelectedCultureKey = "UserSelectedCulture";
         private const string QueryEditorZoomLevelKey = "QueryEditorZoomLevel";
+        private const string CellPreviewVisibleKey = "CellPreviewVisible";
+        private const string CellPreviewHeightKey = "CellPreviewHeight";
+        private const string CellPreviewWordWrapKey = "CellPreviewWordWrap";
+        private const string CellPreviewPrettyPrintKey = "CellPreviewPrettyPrint";
+        private const string LineBreakMarkerEnabledKey = "LineBreakMarkerEnabled";
+        private const string LineBreakMarkerGlyphKey = "LineBreakMarkerGlyph";
+        private const string LineBreakMarkerColorKey = "LineBreakMarkerColor";
 
         public static DateFormat DateTimeDisplayFormat
         {
@@ -35,6 +43,74 @@ namespace ParquetViewer
             get => ReadRegistryValue(AlwaysSelectAllFieldsKey, out string? temp) && bool.TryParse(temp, out var value) ? value : false;
             set => SetRegistryValue(AlwaysSelectAllFieldsKey, value.ToString());
         }
+
+        public static bool CellPreviewVisible
+        {
+            //Defaults to on: the grid truncates long values and has tooltips disabled, so without this
+            //panel there's no way to read them. Same default-true pattern as CellPreviewWordWrap below.
+            get => !ReadRegistryValue(CellPreviewVisibleKey, out string? temp) || !bool.TryParse(temp, out var value) || value;
+            set => SetRegistryValue(CellPreviewVisibleKey, value.ToString());
+        }
+
+        private const int DefaultCellPreviewHeight = 140;
+        private const int MinimumCellPreviewHeight = 60;
+        public static int CellPreviewHeight
+        {
+            //Clamp on read: a stale or hand edited registry value shouldn't be able to collapse the panel
+            //to nothing or push the grid off screen.
+            get => ReadRegistryValue(CellPreviewHeightKey, out int value) && value >= MinimumCellPreviewHeight
+                ? value : DefaultCellPreviewHeight;
+            set => SetRegistryValue(CellPreviewHeightKey, Math.Max(value, MinimumCellPreviewHeight));
+        }
+
+        public static bool CellPreviewWordWrap
+        {
+            get => !ReadRegistryValue(CellPreviewWordWrapKey, out string? temp) || !bool.TryParse(temp, out var value) || value;
+            set => SetRegistryValue(CellPreviewWordWrapKey, value.ToString());
+        }
+
+        public static bool CellPreviewPrettyPrint
+        {
+            get => ReadRegistryValue(CellPreviewPrettyPrintKey, out string? temp) && bool.TryParse(temp, out var value) ? value : false;
+            set => SetRegistryValue(CellPreviewPrettyPrintKey, value.ToString());
+        }
+
+        public const string DefaultLineBreakMarkerGlyph = "¶";
+
+        public static bool LineBreakMarkerEnabled
+        {
+            //Defaults to on: without a marker, a value containing line breaks renders as one run-on line
+            get => !ReadRegistryValue(LineBreakMarkerEnabledKey, out string? temp) || !bool.TryParse(temp, out var value) || value;
+            set => SetRegistryValue(LineBreakMarkerEnabledKey, value.ToString());
+        }
+
+        public static string LineBreakMarkerGlyph
+        {
+            get => ReadRegistryValue(LineBreakMarkerGlyphKey, out string? value) && !string.IsNullOrEmpty(value)
+                ? value : DefaultLineBreakMarkerGlyph;
+            set => SetRegistryValue(LineBreakMarkerGlyphKey, string.IsNullOrEmpty(value) ? DefaultLineBreakMarkerGlyph : value);
+        }
+
+        /// <summary>
+        /// Colour of the line break marker, or null to follow the current theme's hyperlink accent.
+        /// </summary>
+        public static Color? LineBreakMarkerColor
+        {
+            get
+            {
+                if (!ReadRegistryValue(LineBreakMarkerColorKey, out string? value) || string.IsNullOrEmpty(value))
+                    return null;
+
+                //Stored as an ARGB integer so it survives a round trip exactly
+                return int.TryParse(value, out var argb) ? Color.FromArgb(argb) : null;
+            }
+            set => SetRegistryValue(LineBreakMarkerColorKey, value?.ToArgb().ToString() ?? string.Empty);
+        }
+
+        /// <summary>
+        /// Resolves the marker colour for a theme, falling back to that theme's hyperlink accent.
+        /// </summary>
+        public static Color GetLineBreakMarkerColor(Theme theme) => LineBreakMarkerColor ?? theme.HyperlinkColor;
 
         public static bool AlwaysLoadAllRecords
         {

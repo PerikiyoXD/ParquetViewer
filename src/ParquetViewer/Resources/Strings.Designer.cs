@@ -108,6 +108,195 @@ namespace ParquetViewer.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No cell selected.
+        /// </summary>
+        internal static string CellPreviewNoSelectionText {
+            get {
+                return ResourceManager.GetString("CellPreviewNoSelectionText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Word wrap.
+        /// </summary>
+        internal static string CellPreviewWordWrapText {
+            get {
+                return ResourceManager.GetString("CellPreviewWordWrapText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Format JSON.
+        /// </summary>
+        internal static string CellPreviewPrettyPrintText {
+            get {
+                return ResourceManager.GetString("CellPreviewPrettyPrintText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Copy.
+        /// </summary>
+        internal static string CellPreviewCopyText {
+            get {
+                return ResourceManager.GetString("CellPreviewCopyText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cell &amp;Preview Panel.
+        /// </summary>
+        internal static string CellPreviewMenuItemText {
+            get {
+                return ResourceManager.GetString("CellPreviewMenuItemText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Settings.
+        /// </summary>
+        internal static string SettingsFormTitle {
+            get {
+                return ResourceManager.GetString("SettingsFormTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &amp;Settings....
+        /// </summary>
+        internal static string SettingsMenuItemText {
+            get {
+                return ResourceManager.GetString("SettingsMenuItemText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to General.
+        /// </summary>
+        internal static string SettingsGeneralGroupText {
+            get {
+                return ResourceManager.GetString("SettingsGeneralGroupText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cell preview panel.
+        /// </summary>
+        internal static string SettingsCellPreviewGroupText {
+            get {
+                return ResourceManager.GetString("SettingsCellPreviewGroupText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Line break marker.
+        /// </summary>
+        internal static string SettingsLineBreakGroupText {
+            get {
+                return ResourceManager.GetString("SettingsLineBreakGroupText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dark mode.
+        /// </summary>
+        internal static string SettingsDarkModeText {
+            get {
+                return ResourceManager.GetString("SettingsDarkModeText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Always load all records.
+        /// </summary>
+        internal static string SettingsAlwaysLoadAllRecordsText {
+            get {
+                return ResourceManager.GetString("SettingsAlwaysLoadAllRecordsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Always select all fields.
+        /// </summary>
+        internal static string SettingsAlwaysSelectAllFieldsText {
+            get {
+                return ResourceManager.GetString("SettingsAlwaysSelectAllFieldsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show the cell preview panel.
+        /// </summary>
+        internal static string SettingsCellPreviewVisibleText {
+            get {
+                return ResourceManager.GetString("SettingsCellPreviewVisibleText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Wrap long lines.
+        /// </summary>
+        internal static string SettingsCellPreviewWordWrapText {
+            get {
+                return ResourceManager.GetString("SettingsCellPreviewWordWrapText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Format JSON values.
+        /// </summary>
+        internal static string SettingsCellPreviewPrettyPrintText {
+            get {
+                return ResourceManager.GetString("SettingsCellPreviewPrettyPrintText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show a marker where a value contains a line break.
+        /// </summary>
+        internal static string SettingsLineBreakMarkerEnabledText {
+            get {
+                return ResourceManager.GetString("SettingsLineBreakMarkerEnabledText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Marker:.
+        /// </summary>
+        internal static string SettingsLineBreakGlyphText {
+            get {
+                return ResourceManager.GetString("SettingsLineBreakGlyphText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Colour:.
+        /// </summary>
+        internal static string SettingsLineBreakColorText {
+            get {
+                return ResourceManager.GetString("SettingsLineBreakColorText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom....
+        /// </summary>
+        internal static string SettingsCustomColorText {
+            get {
+                return ResourceManager.GetString("SettingsCustomColorText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OK.
+        /// </summary>
+        internal static string SettingsOkText {
+            get {
+                return ResourceManager.GetString("SettingsOkText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cancelling....
         /// </summary>
         internal static string CancelInitiatedLabelText {

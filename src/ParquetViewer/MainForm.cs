@@ -158,6 +158,8 @@ namespace ParquetViewer
             //Have to set these here because it gets deleted from the .Designer.cs file for some reason
             this.metadataViewerToolStripMenuItem.Image = Resources.Icons.text_file_icon_16x16.ToBitmap();
             this.iSO8601ToolStripMenuItem.ToolTipText = ExtensionMethods.ISO8601DateTimeFormat;
+
+            InitializeCellPreview();
         }
 
         public MainForm(string? fileToOpenPath) : this()

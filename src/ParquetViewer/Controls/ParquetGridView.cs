@@ -196,6 +196,12 @@ namespace ParquetViewer.Controls
 
                     e.Handled = true;
                 }
+                else if (this._lineBreakMarkerEnabled
+                    && e.FormattedValue is string formattedText
+                    && formattedText.Contains(this._lineBreakMarker, StringComparison.Ordinal))
+                {
+                    PaintTextWithDimmedLineBreaks(e, formattedText);
+                }
             }
 
             base.OnCellPainting(e); //Handle any additional event handlers
@@ -589,8 +595,18 @@ namespace ParquetViewer.Controls
                 string value = e.Value!.ToString()!;
                 if (value.Length > MAX_CHARACTERS_THAT_CAN_BE_RENDERED_IN_A_CELL)
                 {
-                    e.Value = value[..MAX_CHARACTERS_THAT_CAN_BE_RENDERED_IN_A_CELL] + "[...]";
+                    value = value[..MAX_CHARACTERS_THAT_CAN_BE_RENDERED_IN_A_CELL] + "[...]";
                     e.FormattingApplied = true;
+                }
+
+                if (TryMakeLineBreaksVisible(value, out var withVisibleLineBreaks))
+                {
+                    e.Value = withVisibleLineBreaks;
+                    e.FormattingApplied = true;
+                }
+                else if (e.FormattingApplied)
+                {
+                    e.Value = value;
                 }
             }
             else if (cellValueType.ImplementsInterface<IStructValue>() && e.Value is IStructValue structValue)
@@ -603,6 +619,139 @@ namespace ParquetViewer.Controls
                 e.Value = listValue.ToString()!.Left(MAX_CHARACTERS_THAT_CAN_BE_RENDERED_IN_A_CELL - 3, "...");
                 e.FormattingApplied = true;
             }
+        }
+
+        //Cached per paint pass rather than read from the registry for every cell
+        private string _lineBreakMarker = AppSettings.LineBreakMarkerGlyph;
+        private bool _lineBreakMarkerEnabled = AppSettings.LineBreakMarkerEnabled;
+        private Color _lineBreakMarkerColor = AppSettings.GetLineBreakMarkerColor(Theme.LightModeTheme);
+
+        /// <summary>
+        /// Re-reads the line break marker settings and repaints.
+        /// </summary>
+        public void RefreshLineBreakMarkerSettings()
+        {
+            this._lineBreakMarker = AppSettings.LineBreakMarkerGlyph;
+            this._lineBreakMarkerEnabled = AppSettings.LineBreakMarkerEnabled;
+            this._lineBreakMarkerColor = AppSettings.GetLineBreakMarkerColor(this.GridTheme);
+
+            this.Invalidate();
+        }
+
+        /// <summary>
+        /// Draws a cell's text with the line break markers dimmed so they read as markers rather than as
+        /// part of the value.
+        /// </summary>
+        /// <remarks>
+        /// Drawn in segments because a cell's text is painted in one colour. Only runs for cells that
+        /// actually contain a marker, which is rare, so the ordinary painting path is unaffected.
+        /// </remarks>
+        private void PaintTextWithDimmedLineBreaks(DataGridViewCellPaintingEventArgs e, string text)
+        {
+            //Let the grid draw everything except the text itself
+            e.Paint(e.CellBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
+
+            var isSelected = e.State.HasFlag(DataGridViewElementStates.Selected);
+            var textColor = isSelected ? e.CellStyle!.SelectionForeColor : e.CellStyle!.ForeColor;
+
+            //On a selected row the highlight can swallow a dim colour, so use the selection foreground
+            var symbolColor = isSelected ? e.CellStyle.SelectionForeColor : this._lineBreakMarkerColor;
+
+            var marker = this._lineBreakMarker;
+            var font = e.CellStyle.Font!;
+            const TextFormatFlags flags = TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding
+                | TextFormatFlags.SingleLine | TextFormatFlags.PreserveGraphicsClipping;
+
+            //Match where the grid would have started the text
+            var bounds = e.CellBounds;
+            var x = bounds.Left + 3;
+            var right = bounds.Right - 2;
+
+            var segmentStart = 0;
+            while (segmentStart < text.Length && x < right)
+            {
+                var symbolIndex = text.IndexOf(marker, segmentStart, StringComparison.Ordinal);
+                var isSymbol = symbolIndex == segmentStart;
+
+                string segment;
+                if (isSymbol)
+                {
+                    segment = marker;
+                    segmentStart += marker.Length;
+                }
+                else
+                {
+                    var end = symbolIndex < 0 ? text.Length : symbolIndex;
+
+                    //Measuring thousands of characters that can't fit anyway is pure waste. No cell is
+                    //wide enough to show this many, so anything past it would be clipped regardless.
+                    const int MaxCharactersWorthMeasuring = 512;
+                    end = Math.Min(end, segmentStart + MaxCharactersWorthMeasuring);
+
+                    segment = text[segmentStart..end];
+                    segmentStart = end;
+                }
+
+                var segmentSize = TextRenderer.MeasureText(e.Graphics!, segment, font, new Size(int.MaxValue, bounds.Height), flags);
+                var segmentBounds = new Rectangle(x, bounds.Top, Math.Min(segmentSize.Width, right - x), bounds.Height);
+
+                TextRenderer.DrawText(e.Graphics!, segment, font, segmentBounds,
+                    isSymbol ? symbolColor : textColor,
+                    flags | TextFormatFlags.VerticalCenter);
+
+                x += segmentSize.Width;
+            }
+
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Replaces line breaks with a visible symbol so multi line values don't render as one run-on line.
+        /// </summary>
+        /// <remarks>
+        /// A grid cell draws a single line, so any line break in the value is simply invisible and the text
+        /// on either side of it appears joined. This only changes what is drawn: the clipboard path skips
+        /// formatting entirely, and the preview panel reads the underlying value rather than the cell's.
+        /// </remarks>
+        /// <returns>True if the value contained line breaks and was rewritten.</returns>
+        private bool TryMakeLineBreaksVisible(string value, out string result)
+        {
+            result = value;
+
+            if (!this._lineBreakMarkerEnabled)
+                return false;
+
+            var lineBreakIndex = value.AsSpan().IndexOfAny('\r', '\n');
+            if (lineBreakIndex < 0)
+                return false; //Overwhelmingly the common case, so don't allocate anything
+
+            var marker = this._lineBreakMarker;
+            var builder = new StringBuilder(value.Length);
+            builder.Append(value.AsSpan(0, lineBreakIndex));
+
+            for (var i = lineBreakIndex; i < value.Length; i++)
+            {
+                var current = value[i];
+                if (current == '\r')
+                {
+                    builder.Append(marker);
+
+                    //Treat CRLF as one break rather than two
+                    if (i + 1 < value.Length && value[i + 1] == '\n')
+                        i++;
+                }
+                else if (current == '\n')
+                {
+                    builder.Append(marker);
+                }
+                else
+                {
+                    builder.Append(current);
+                }
+            }
+
+            result = builder.ToString();
+            return true;
         }
 
         protected override void OnSorted(EventArgs e)
@@ -937,6 +1086,9 @@ namespace ParquetViewer.Controls
 
         private void SetTheme()
         {
+            //The marker falls back to the theme's accent when no explicit colour is configured
+            this._lineBreakMarkerColor = AppSettings.GetLineBreakMarkerColor(this.GridTheme);
+
             this.DefaultCellStyle.BackColor = this.GridTheme.CellBackgroundColor;
             this.DefaultCellStyle.ForeColor = this.GridTheme.TextColor;
             this.DefaultCellStyle.SelectionBackColor = this.GridTheme.SelectionBackColor;

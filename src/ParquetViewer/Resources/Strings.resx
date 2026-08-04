@@ -260,6 +260,80 @@ Would you like to switch to a {2} file instead?</value>
     <value>Cancel</value>
     <comment>Text to be shown on cancel buttons</comment>
   </data>
+  <data name="CellPreviewNoSelectionText" xml:space="preserve">
+    <value>No cell selected</value>
+    <comment>Shown in the cell preview panel when nothing is selected</comment>
+  </data>
+  <data name="CellPreviewWordWrapText" xml:space="preserve">
+    <value>Word wrap</value>
+    <comment>Toggles line wrapping in the cell preview panel</comment>
+  </data>
+  <data name="CellPreviewPrettyPrintText" xml:space="preserve">
+    <value>Format JSON</value>
+    <comment>Toggles indented JSON formatting in the cell preview panel</comment>
+  </data>
+  <data name="CellPreviewCopyText" xml:space="preserve">
+    <value>Copy</value>
+    <comment>Copies the previewed cell value to the clipboard</comment>
+  </data>
+  <data name="CellPreviewMenuItemText" xml:space="preserve">
+    <value>Cell &amp;Preview Panel</value>
+    <comment>Menu item that shows or hides the cell preview panel</comment>
+  </data>
+  <data name="SettingsFormTitle" xml:space="preserve">
+    <value>Settings</value>
+    <comment>Title of the settings window</comment>
+  </data>
+  <data name="SettingsMenuItemText" xml:space="preserve">
+    <value>&amp;Settings...</value>
+    <comment>Menu item that opens the settings window</comment>
+  </data>
+  <data name="SettingsGeneralGroupText" xml:space="preserve">
+    <value>General</value>
+    <comment>Group of general settings</comment>
+  </data>
+  <data name="SettingsCellPreviewGroupText" xml:space="preserve">
+    <value>Cell preview panel</value>
+    <comment>Group of cell preview panel settings</comment>
+  </data>
+  <data name="SettingsLineBreakGroupText" xml:space="preserve">
+    <value>Line break marker</value>
+    <comment>Group of settings for how line breaks are shown in grid cells</comment>
+  </data>
+  <data name="SettingsDarkModeText" xml:space="preserve">
+    <value>Dark mode</value>
+  </data>
+  <data name="SettingsAlwaysLoadAllRecordsText" xml:space="preserve">
+    <value>Always load all records</value>
+  </data>
+  <data name="SettingsAlwaysSelectAllFieldsText" xml:space="preserve">
+    <value>Always select all fields</value>
+  </data>
+  <data name="SettingsCellPreviewVisibleText" xml:space="preserve">
+    <value>Show the cell preview panel</value>
+  </data>
+  <data name="SettingsCellPreviewWordWrapText" xml:space="preserve">
+    <value>Wrap long lines</value>
+  </data>
+  <data name="SettingsCellPreviewPrettyPrintText" xml:space="preserve">
+    <value>Format JSON values</value>
+  </data>
+  <data name="SettingsLineBreakMarkerEnabledText" xml:space="preserve">
+    <value>Show a marker where a value contains a line break</value>
+  </data>
+  <data name="SettingsLineBreakGlyphText" xml:space="preserve">
+    <value>Marker:</value>
+  </data>
+  <data name="SettingsLineBreakColorText" xml:space="preserve">
+    <value>Colour:</value>
+  </data>
+  <data name="SettingsCustomColorText" xml:space="preserve">
+    <value>Custom...</value>
+    <comment>Colour dropdown entry that opens the system colour picker</comment>
+  </data>
+  <data name="SettingsOkText" xml:space="preserve">
+    <value>OK</value>
+  </data>
   <data name="CopyToClipboardWithHeadersText" xml:space="preserve">
     <value>Copy with headers</value>
     <comment>Text shown for copying with headers in the right-click context menu</comment>

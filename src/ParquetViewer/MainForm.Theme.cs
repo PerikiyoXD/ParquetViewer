@@ -39,6 +39,8 @@ namespace ParquetViewer
             this.clearFilterButton.BackColor = Color.White;
 
             this.mainMenuStrip.Renderer = theme.ToolStripRenderer;
+
+            this.SetCellPreviewTheme(theme);
         }
     }
 }
