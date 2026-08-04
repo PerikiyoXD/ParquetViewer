@@ -354,3 +354,6 @@ MigrationBackup/
 # Local NuGet config (machine-specific feed overrides; not part of the project)
 nuget.config
 NuGet.config
+
+# Local publish output (built binaries, not source)
+publish/
