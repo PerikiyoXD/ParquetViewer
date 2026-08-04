@@ -357,3 +357,6 @@ NuGet.config
 
 # Local publish output (built binaries, not source)
 publish/
+
+# Local fork working notes (PR drafts etc, not part of the project)
+.fork/
